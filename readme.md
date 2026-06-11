@@ -5,7 +5,6 @@
 ### Building
 
 > [!WARNING]
-
 > This project will compile only on Linux
 
 
@@ -39,7 +38,6 @@ init=/usr/bin/denizo-init
 ```
 
 > [!CAUTION]
-
 > Without any configuration system will not boot, do not reboot without a way to get back.
 
 
@@ -65,14 +63,11 @@ Path of shutdown scripts:
 
 
 > [!WARNING]
-
 > Init will wait for every script status, so it will hang if something is not daemonized.
 
 
 
 > [!NOTE]
-
 > If `-auto-restart` is added to the end of filename Init will restart script if it exits and will wait for process in another thread (will not hang when process is not daemonized).
-
 > **Auto-restart feature will start new process every time Bash exits, so be careful with detaching daemons.**
 
