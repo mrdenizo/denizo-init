@@ -10,13 +10,9 @@
 
 
 ```bash
-
 > git clone https://github.com/mrdenizo/denizo-init.git
-
 > cd ./denizo-init
-
 > cargo build --release
-
 ```
 
 
@@ -24,17 +20,13 @@
 ### Installing (assuming release build)
 
 ```
-
 cp ./target/release/denizo-init /usr/bin/
-
 ```
 
 > then add to kernel cmdline
 
 ```
-
 init=/usr/bin/denizo-init
-
 ```
 
 > [!CAUTION]
