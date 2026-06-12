@@ -76,6 +76,10 @@ fn main() {
         }
         thread::sleep(Duration::from_millis(1000));
     }
+    println!("enering loop to prevent kernel panic");
+    loop {
+        thread::sleep(std::time::Duration::from_millis(1000));
+    }
 }
 
 fn process_syscall(reboot: bool) {
@@ -109,7 +113,7 @@ fn process_syscall(reboot: bool) {
                 println!("error getting process status {}", err);
             }
         }
-        thread::sleep(Duration::from_millis(500));
+        thread::sleep(Duration::from_millis(50));
     }
 
     println!("getting shutdown scripts...");
@@ -168,7 +172,7 @@ fn process_entry(e: std::path::PathBuf) {
         .spawn();
     match result {
         Ok(mut ok) => {
-            ok.wait().expect("wtf something wrong just happened: ");
+            ok.wait();
             println!("Started {}.", str_name);
         },
         Err(err) => {
