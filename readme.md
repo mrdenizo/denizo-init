@@ -15,7 +15,7 @@ cargo build --release
 ### Installing (assuming release build)
 ```bash
 cp ./target/release/denizo-init /usr/bin/
-cp ./target/release/d-initctl /bin/
+cp ./target/release/d-initctl /usr/bin/
 ```
 
 Then add to kernel cmdline:
@@ -55,8 +55,12 @@ d-initctl start 03-service.sh
 d-initctl restart 03-service.sh
 d-initctl stop 03-service.sh
 ```
+> [!NOTE]
+> Use `d-initctl refresh` after making any changes to `/etc/denizo-init/boot-scripts/` directory.
 
 Use `d-initctl status` to get list of all available services.
+
+Use `d-initctl status 03-service.sh` to display information about `03-service.sh`.
 
 > [!CAUTION]
 > d-initctl will not work without correctly mounted /run directory

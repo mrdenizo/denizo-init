@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::{Read, Write}, ops::Add, os::unix::net::UnixListener, thread, time::Duration};
+use std::{collections::HashMap, io::{Read, Write}, os::unix::net::UnixListener, thread, time::Duration};
 
 pub fn setup_hostname() {
     println!("setting system hostname from /etc/hostname.");
@@ -19,6 +19,19 @@ pub fn setup_hostname() {
             }
         }
     }
+}
+fn find_diff(services: &HashMap<String, crate::svc::Service>, new_services: &HashMap<String, crate::svc::Service>) -> (Vec<String>, Vec<String>) {
+    let mut diff = std::vec::Vec::new();
+    let mut unchanged = std::vec::Vec::new();
+    for old_svc in services.keys() {
+        if !new_services.contains_key(old_svc) {
+            diff.push(old_svc.clone());
+        }
+        else {
+            unchanged.push(old_svc.clone());
+        }
+    }
+    return (diff, unchanged);
 }
 pub fn setup_socket_listener(recv: &UnixListener, services: &mut HashMap<String, crate::svc::Service>) {
     loop {
@@ -43,12 +56,34 @@ pub fn setup_socket_listener(recv: &UnixListener, services: &mut HashMap<String,
                     return;
                 }
                 else if cmd == "status" {
-                    let mut full_status = String::new();
+                    let mut status = String::new();
                     for service in &mut *services {
-                        let status = format!("{} is running: {}\n", service.0, service.1.is_service_running());
-                        full_status += &status;
+                        status += &format!("{} is running: {}\n", service.0, service.1.is_service_running());
                     }
-                    socket.write_all(&full_status.into_bytes());
+                    socket.write_all(&status.into_bytes());
+                }
+                else if cmd == "refresh" {
+                    let mut new_services = crate::process_scripts("/etc/denizo-init/boot-scripts/", false);
+                    let mut report = String::new();
+                    let removed = find_diff(services, &new_services).0;
+                    let added = find_diff(&new_services, services);
+                    
+                    for svc in removed {
+                        if services[&svc].stop().is_ok() {
+                            report += &format!("{} stopped\n", svc);
+                        }
+                        services.remove(&svc);
+                        report += &format!("{} removed\n", svc);
+                    }
+
+                    for svc in added.0 {
+                        services.insert(svc.clone(), new_services.remove(&svc).unwrap());
+                        report += &format!("{} added\n", svc);
+                    }
+                    for svc in added.1 {
+                        report += &format!("{} unchanged\n", svc);
+                    }
+                    socket.write_all(&report.into_bytes());
                 }
                 else if cmd.starts_with("start ") {
                     let name = &cmd[6..cmd.len()];
@@ -90,6 +125,15 @@ pub fn setup_socket_listener(recv: &UnixListener, services: &mut HashMap<String,
                         else {
                             socket.write_all(&format!("stopped {}", name).into_bytes());
                         }
+                    }
+                    else {
+                        socket.write_all(&format!("service {} does not exist", name).into_bytes());
+                    }
+                }
+                else if cmd.starts_with("status ") {
+                    let name = &cmd[7..cmd.len()];
+                    if let Some(svc) = services.get(name) {
+                        socket.write_all(&format!("{} is running: {}", name, svc.is_service_running()).into_bytes());
                     }
                     else {
                         socket.write_all(&format!("service {} does not exist", name).into_bytes());

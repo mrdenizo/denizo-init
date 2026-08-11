@@ -29,7 +29,7 @@ fn main() {
 
     println!("getting init scripts...");
 
-    let mut services = process_scripts("/etc/denizo-init/boot-scripts/");
+    let mut services = process_scripts("/etc/denizo-init/boot-scripts/", true);
 
     println!("setting up signal handler for shutting down");
 
@@ -105,7 +105,7 @@ fn process_syscall(reboot: bool, services: &std::collections::HashMap<String, cr
 
     println!("getting shutdown scripts...");
 
-    process_scripts("/etc/denizo-init/shutdown-scripts/");
+    process_scripts("/etc/denizo-init/shutdown-scripts/", true);
 
     println!("sending reboot to kernel");
 
@@ -116,7 +116,7 @@ fn process_syscall(reboot: bool, services: &std::collections::HashMap<String, cr
     nix::sys::reboot::reboot(nix::sys::reboot::RebootMode::RB_POWER_OFF).unwrap();
 }
 
-fn process_scripts(dir: &str) -> std::collections::HashMap<String, svc::Service>  {
+fn process_scripts(dir: &str, autostart: bool) -> std::collections::HashMap<String, svc::Service>  {
     let scripts = std::fs::read_dir(dir);
     let mut services: std::collections::HashMap<String, svc::Service>  = std::collections::HashMap::new();
     match scripts {
@@ -127,7 +127,7 @@ fn process_scripts(dir: &str) -> std::collections::HashMap<String, svc::Service>
             if let Ok(mut entry) = e {
                 entry.sort();
                 for file in entry {
-                    if let Some(service) = process_entry(file.clone()) {
+                    if let Some(service) = process_entry(file.clone(), autostart) {
                         services.insert(String::from(file.file_name().unwrap().to_str().unwrap()), service);
                     }
                 }
@@ -142,14 +142,14 @@ fn process_error(err_msg: &str, err: std::io::Error) {
     println!("{} {}!", err_msg, err);
 }
 
-fn process_entry(e: std::path::PathBuf) -> Option<svc::Service> {
+fn process_entry(e: std::path::PathBuf, autostart: bool) -> Option<svc::Service> {
     if !e.is_file() {
         println!("{} is not a file.", e.to_str().unwrap());
         return None;
     }
     let name = e.clone();
     let mut service = svc::Service::new(name);
-    if !e.to_str().unwrap().ends_with("disabled") {
+    if !e.to_str().unwrap().ends_with("disabled") && autostart {
         service.start();
     }
     return Option::from(service);
