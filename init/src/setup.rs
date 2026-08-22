@@ -1,4 +1,8 @@
-use std::{collections::HashMap, io::{Read, Write}, os::unix::net::UnixListener, thread, time::Duration};
+use std::collections::HashMap;
+use std::thread;
+use std::os::unix::net::UnixListener;
+use std::io::{ Read, Write };
+use crate::svc::Service;
 
 pub fn setup_hostname() {
     println!("setting system hostname from /etc/hostname.");
@@ -20,7 +24,7 @@ pub fn setup_hostname() {
         }
     }
 }
-fn find_diff(services: &HashMap<String, crate::svc::Service>, new_services: &HashMap<String, crate::svc::Service>) -> (Vec<String>, Vec<String>) {
+fn find_diff(services: &HashMap<String, Service>, new_services: &HashMap<String, Service>) -> (Vec<String>, Vec<String>) {
     let mut diff = std::vec::Vec::new();
     let mut unchanged = std::vec::Vec::new();
     for old_svc in services.keys() {
@@ -33,7 +37,7 @@ fn find_diff(services: &HashMap<String, crate::svc::Service>, new_services: &Has
     }
     return (diff, unchanged);
 }
-pub fn setup_socket_listener(recv: &UnixListener, services: &mut HashMap<String, crate::svc::Service>) {
+pub fn setup_socket_listener(recv: &UnixListener, services: &mut HashMap<String, Service>) {
     loop {
         match recv.accept() {
             Ok((mut socket, addr)) => {
@@ -154,7 +158,7 @@ pub fn setup_zombie_reaper() {
 }
 fn reap_zombies() {
     loop {
-        let status = nix::sys::wait::waitpid(crate::ANY_PID, Option::from(nix::sys::wait::WaitPidFlag::WNOHANG));
+        let status = nix::sys::wait::waitpid(crate::ANY_PID, None);
         match status {
             Ok(ok) => {
                 if let Some(pid) = ok.pid() {
@@ -174,6 +178,5 @@ fn reap_zombies() {
                 }
             }
         }
-        thread::sleep(Duration::from_millis(1000));
     }
 }
